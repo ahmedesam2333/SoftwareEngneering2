@@ -14,10 +14,4 @@ public class MethodExecutionTimeAspect {
         System.out.println(joinPoint.getSignature() + " executed in " + executionTime + "ms");
         return result;
     }
-    /**
-     * Measures the execution time of methods in controllers.
-     * @param joinPoint ProceedingJoinPoint representing the method being executed.
-     * @return The result of the method execution.
-     * @throws Throwable Thrown if an error occurs during method execution.
-     */
 }

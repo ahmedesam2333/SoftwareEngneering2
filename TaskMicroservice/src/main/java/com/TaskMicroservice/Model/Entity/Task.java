@@ -1,8 +1,6 @@
 package com.TaskMicroservice.Model.Entity;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 @Entity
 public class Task {
@@ -10,13 +8,12 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     @NotBlank(message = "Title must not be blank")
-    @Size(min = 1, max = 255, message = "Title length must be between 1 and 255 characters")
+    @Size(min = 1, max = 100, message = "Title length must be between 1 and 100 characters")
     private String title;
     private boolean done;
     private Integer userId;
     public Task() {}
-    public Task(Integer id, String title, boolean done, Integer userId) {
-        this.id = id;
+    public Task(String title, boolean done, Integer userId) {
         this.title = title;
         this.done = done;
         this.userId = userId;
