@@ -110,7 +110,7 @@
     <button onclick="fetchUncompletedTasks()">Show Uncompleted Tasks</button>
     <button onclick="fetchAllTasks()">Show All Tasks</button>
     <form id="new-task-form">
-        <input type="text" id="new-task-title" placeholder="Enter task title">
+        <input type="text" id="new-task-title" placeholder="Enter task title" required maxlength="100">
         <button type="submit">Add Task</button>
     </form>
     <div id="tasks-list"></div>
@@ -244,27 +244,33 @@
         }
 
         function editTask(taskId, currentTitle) {
-            const newTitle = prompt("Enter new title for the task:", currentTitle);
-            if (newTitle !== null) {
-                fetch(`http://host.docker.internal:8081/api/users/tasks/${userId}/${taskId}`, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ title: newTitle })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error("Failed to update task title");
-                    }
-                    return response.json();
-                })
-                .then(() => fetchTasks())
-                .catch(error => {
-                    console.error("Error updating task title:", error);
-                });
-            }
+    const newTitle = prompt("Enter new title for the task (max 100 characters):", currentTitle);
+    if (newTitle !== null) {
+        if (newTitle.length > 100) {
+            console.error("Error: Title exceeds 100 characters limit");
+            return;
         }
+
+        fetch(`http://host.docker.internal:8081/api/users/tasks/${userId}/${taskId}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ title: newTitle })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Failed to update task title");
+            }
+            return response.json();
+        })
+        .then(() => fetchTasks())
+        .catch(error => {
+            console.error("Error updating task title:", error);
+        });
+    }
+}
+
 
         function deleteTask(taskId) {
             if (confirm("Are you sure you want to delete this task?")) {
