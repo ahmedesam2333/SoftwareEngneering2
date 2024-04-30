@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskaty Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            margin-top: 20px;
+        }
+        #tasks-list {
+            margin-top: 20px;
+            max-width: 600px;
+            width: 100%;
+        }
+        .task-item {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s ease;
+        }
+        .task-item.done {
+            background-color: #f2f2f2;
+        }
+        .task-title {
+            flex-grow: 1;
+            margin-right: 10px;
+            color: #333;
+            text-decoration: none;
+            transition: text-decoration 0.3s ease;
+        }
+        .task-item.done .task-title {
+            text-decoration: line-through;
+        }
+        .task-actions {
+            display: flex;
+            align-items: center;
+        }
+        .task-actions button {
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        .status-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        #new-task-form {
+            margin-top: 20px;
+            max-width: 600px;
+            width: 100%;
+        }
+        #new-task-form input[type="text"] {
+            width: calc(100% - 80px);
+            margin-right: 10px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        #new-task-form button {
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        #new-task-form button:hover {
+            background-color: #0056b3;
+        }
+        #top-buttons {
+            margin-top: 10px;
+        }
+        #top-buttons button {
+            margin-right: 10px;
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        #top-buttons button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="top-buttons">
+        <button onclick="editProfile()">Edit Profile</button>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <h1>Welcome to Taskaty Dashboard</h1>
+    <button onclick="fetchCompletedTasks()">Show Completed Tasks</button>
+    <button onclick="fetchUncompletedTasks()">Show Uncompleted Tasks</button>
+    <button onclick="fetchAllTasks()">Show All Tasks</button>
+    <form id="new-task-form">
+        <input type="text" id="new-task-title" placeholder="Enter task title" required maxlength="100">
+        <button type="submit">Add Task</button>
+    </form>
+    <div id="tasks-list"></div>
+
+    <script>
+        let allTasks = [];
+        const userId = localStorage.getItem('userId');
+        console.log(userId);
+        document.addEventListener("DOMContentLoaded", function() {
+            fetchTasks();
+        });
+
+        document.getElementById("new-task-form").addEventListener("submit", function(event) {
+            event.preventDefault();
+            const title = document.getElementById("new-task-title").value.trim();
+            if (title) {
+                createTask(title);
+                document.getElementById("new-task-title").value = "";
+            }
+        });
+
+        function fetchTasks() {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        console.error("User ID not found in localStorage");
+        return;
+    }
+    fetch(`http://host.docker.internal:8081/api/users/tasks/${userId}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json"
+        },
+    })
+    .then(response => {
+        if (!response.ok) {
+            console.error("Failed to fetch tasks. Status code:", response.status);
+            response.text().then(data => console.error("Response body:", data));
+            throw new Error("Failed to fetch tasks");
+        }
+        return response.json();
+    })
+    .then(tasks => {
+        allTasks = tasks;
+        renderTasks(tasks);
+    })
+    .catch(error => {
+        console.error("Error fetching tasks:", error);
+        if (error instanceof TypeError) {
+            console.error("A TypeError occurred. This may be due to a network issue.");
+        }
+    });
+}
+
+        function fetchCompletedTasks() {
+            const completedTasks = allTasks.filter(task => task.done);
+            renderTasks(completedTasks);
+        }
+
+        function fetchUncompletedTasks() {
+            const uncompletedTasks = allTasks.filter(task => !task.done);
+            renderTasks(uncompletedTasks);
+        }
+
+        function fetchAllTasks() {
+            renderTasks(allTasks);
+        }
+   function sortTasksById(tasks) {
+        tasks.sort((a, b) => a.id - b.id);
+    }
+        function renderTasks(tasks) {
+           sortTasksById(tasks);
+            const tasksList = document.getElementById("tasks-list");
+            tasksList.innerHTML = "";
+            tasks.forEach(task => {
+                const taskItem = document.createElement("div");
+                taskItem.classList.add("task-item");
+                if (task.done) {
+                    taskItem.classList.add("done");
+                }
+
+                const taskTitle = document.createElement("div");
+                taskTitle.classList.add("task-title");
+                taskTitle.textContent = task.title;
+
+                const taskActions = document.createElement("div");
+                taskActions.classList.add("task-actions");
+
+                const statusCheckbox = document.createElement("input");
+                statusCheckbox.setAttribute("type", "checkbox");
+                statusCheckbox.checked = task.done;
+                statusCheckbox.classList.add("status-checkbox");
+                statusCheckbox.addEventListener("click", () => toggleTaskStatus(task.id, statusCheckbox.checked));
+
+                const editButton = document.createElement("button");
+                editButton.textContent = "Edit";
+                editButton.addEventListener("click", () => editTask(task.id, task.title));
+
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "Delete";
+                deleteButton.addEventListener("click", () => deleteTask(task.id));
+
+                taskActions.appendChild(statusCheckbox);
+                taskActions.appendChild(editButton);
+                taskActions.appendChild(deleteButton);
+
+                taskItem.appendChild(taskTitle);
+                taskItem.appendChild(taskActions);
+
+                tasksList.appendChild(taskItem);
+            });
+        }
+
+        function createTask(title) {
+            fetch(`http://host.docker.internal:8081/api/users/tasks/${userId}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ title: title, done: false })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to create task");
+                }
+                return response.json();
+            })
+            .then(() => fetchTasks())
+            .catch(error => {
+                console.error("Error creating task:", error);
+            });
+        }
+
+        function editTask(taskId, currentTitle) {
+    const newTitle = prompt("Enter new title for the task (max 100 characters):", currentTitle);
+    if (newTitle !== null) {
+        if (newTitle.length > 100) {
+            console.error("Error: Title exceeds 100 characters limit");
+            return;
+        }
+
+        fetch(`http://host.docker.internal:8081/api/users/tasks/${userId}/${taskId}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ title: newTitle })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Failed to update task title");
+            }
+            return response.json();
+        })
+        .then(() => fetchTasks())
+        .catch(error => {
+            console.error("Error updating task title:", error);
+        });
+    }
+}
+
+
+        function deleteTask(taskId) {
+            if (confirm("Are you sure you want to delete this task?")) {
+                fetch(`http://host.docker.internal:8081/api/users/tasks/${userId}/${taskId}`, {
+                    method: "DELETE"
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Failed to delete task");
+                    }
+                    fetchTasks();
+                })
+                .catch(error => {
+                    console.error("Error deleting task:", error);
+                });
+            }
+        }
+
+        function toggleTaskStatus(taskId, newStatus) {
+            fetch(`http://host.docker.internal:8081/api/users/tasks/${userId}/toggle/${taskId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ done: newStatus })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to toggle task status");
+                }
+                fetchTasks();
+            })
+            .catch(error => {
+                console.error("Error toggling task status:", error);
+            });
+        }
+
+        function editProfile() {
+            window.location.href = "EditProfile.html";
+        }
+
+        function logout() {
+            localStorage.removeItem('userId');
+            window.location.href = "login.html";
+        }
+    </script>
+</body>
+</html>
