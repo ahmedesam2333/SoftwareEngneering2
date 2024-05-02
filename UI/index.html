@@ -247,6 +247,7 @@
     const newTitle = prompt("Enter new title for the task (max 100 characters):", currentTitle);
     if (newTitle !== null) {
         if (newTitle.length > 100) {
+            alert("Error: Title exceeds 100 characters limit");
             console.error("Error: Title exceeds 100 characters limit");
             return;
         }
